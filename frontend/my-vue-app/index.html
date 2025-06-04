@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analiza Sprzedaży</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.0/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .upload-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 30px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .file-label {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: bold;
+      }
+
+      .file-label:hover {
+        background: #5a6fd8;
+        transform: translateY(-2px);
+      }
+
+      .upload-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-left: 15px;
+        transition: all 0.3s;
+      }
+
+      .upload-btn:hover {
+        background: #218838;
+        transform: translateY(-2px);
+      }
+
+      .upload-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #667eea;
+      }
+
+      .stat-card h3 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+      }
+
+      .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        height: 400px;
+      }
+
+      .chart-title {
+        font-size: 1.3em;
+        margin-bottom: 20px;
+        color: #333;
+        text-align: center;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 50px;
+        color: #667eea;
+        font-size: 1.2em;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+      }
+
+      .success {
+        background: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+      }
+
+      .ai-analysis {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 30px;
+        margin: 30px 0;
+        color: white;
+      }
+
+      .ai-section {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 25px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+      }
+
+      .ai-section h3 {
+        color: #fff;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .ai-insight {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        border-left: 4px solid #ffd700;
+      }
+
+      .ai-insight p {
+        margin: 5px 0;
+        line-height: 1.6;
+      }
+
+      .summary-card {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 25px;
+        margin: 20px 0;
+        backdrop-filter: blur(15px);
+      }
+
+      .summary-title {
+        font-size: 1.5em;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #ffd700;
+      }
+
+      .metric-list,
+      .recommendation-list,
+      .action-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .metric-list li,
+      .recommendation-list li,
+      .action-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .metric-list li:last-child,
+      .recommendation-list li:last-child,
+      .action-list li:last-child {
+        border-bottom: none;
+      }
+
+      .toggle-section {
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .toggle-section:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .collapse-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+
+      .collapse-content.expanded {
+        max-height: 1000px;
+      }
+
+      canvas {
+        max-height: 300px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="container">
+        <div class="header">
+          <h1>📊 Analiza Sprzedaży</h1>
+          <p>Przesyłaj pliki Excel i analizuj dane sprzedażowe</p>
+        </div>
+
+        <div class="content">
+          <!-- Sekcja przesyłania plików -->
+          <div class="upload-section">
+            <h2>Prześlij plik Excel</h2>
+            <p style="margin: 15px 0; color: #666">
+              Obsługiwane formaty: .xlsx, .xls
+            </p>
+
+            <input
+              type="file"
+              id="file-input"
+              class="file-input"
+              @change="handleFileSelect"
+              accept=".xlsx,.xls"
+            />
+            <label for="file-input" class="file-label">
+              📁 {{ selectedFile ? selectedFile.name : 'Wybierz plik' }}
+            </label>
+
+            <button
+              @click="uploadFile"
+              :disabled="!selectedFile || uploading"
+              class="upload-btn"
+            >
+              {{ uploading ? '⏳ Przesyłanie...' : '🚀 Prześlij' }}
+            </button>
+          </div>
+
+          <!-- Komunikaty -->
+          <div v-if="message" :class="messageType">{{ message }}</div>
+
+          <!-- Statystyki -->
+          <div v-if="analytics.total_records" class="stats-grid">
+            <div class="stat-card">
+              <h3>Liczba rekordów</h3>
+              <div class="stat-value">{{ analytics.total_records }}</div>
+            </div>
+
+            <div
+              v-for="(stats, column) in analytics.summary_stats"
+              :key="column"
+              class="stat-card"
+            >
+              <h3>{{ column }}</h3>
+              <div class="stat-value">
+                {{ Math.round(stats.sum).toLocaleString() }}
+              </div>
+              <small
+                >Suma: {{ Math.round(stats.sum).toLocaleString() }} | Średnia:
+                {{ Math.round(stats.mean) }}</small
+              >
+            </div>
+          </div>
+
+          <!-- Wykresy -->
+          <div v-if="chartsLoaded" class="charts-grid">
+            <div class="chart-container">
+              <h3 class="chart-title">Trend Liniowy</h3>
+              <canvas ref="lineChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+              <h3 class="chart-title">Porównanie Słupkowe</h3>
+              <canvas ref="barChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+              <h3 class="chart-title">Rozkład Danych</h3>
+              <canvas ref="pieChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Analiza AI -->
+          <div v-if="aiAnalysis.summary" class="ai-analysis">
+            <h2
+              style="text-align: center; margin-bottom: 30px; font-size: 2.2em"
+            >
+              🤖 Analiza AI - Zespół Ekspertów
+            </h2>
+
+            <!-- Podsumowanie wykonawcze -->
+            <div class="summary-card">
+              <div class="summary-title">📋 Podsumowanie Wykonawcze</div>
+              <p>
+                <strong>Okres analizy:</strong> {{
+                aiAnalysis.summary.period_overview }}
+              </p>
+
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                  gap: 20px;
+                  margin-top: 20px;
+                "
+              >
+                <div>
+                  <h4 style="color: #ffd700; margin-bottom: 10px">
+                    📊 Kluczowe wskaźniki
+                  </h4>
+                  <ul class="metric-list">
+                    <li
+                      v-for="metric in aiAnalysis.summary.key_metrics"
+                      :key="metric"
+                    >
+                      {{ metric }}
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 style="color: #ffd700; margin-bottom: 10px">
+                    💡 Główne rekomendacje
+                  </h4>
+                  <ul class="recommendation-list">
+                    <li
+                      v-for="rec in aiAnalysis.summary.main_recommendations"
+                      :key="rec"
+                    >
+                      {{ rec }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px">
+                <h4 style="color: #ffd700; margin-bottom: 10px">
+                  🎯 Plan działania (2 tygodnie)
+                </h4>
+                <ul class="action-list">
+                  <li
+                    v-for="action in aiAnalysis.summary.action_plan"
+                    :key="action"
+                  >
+                    {{ action }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Agent Handlowy -->
+            <div class="ai-section">
+              <h3 @click="toggleSection('sales')" class="toggle-section">
+                🎯 Agent Handlowy - Analiza Sprzedaży
+                <span style="font-size: 0.8em"
+                  >{{ expandedSections.sales ? '▼' : '▶' }}</span
+                >
+              </h3>
+              <div
+                class="collapse-content"
+                :class="{ expanded: expandedSections.sales }"
+              >
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">📈 Analiza wyników sprzedaży</h4>
+                  <p
+                    v-for="insight in aiAnalysis.sales_insights"
+                    :key="insight"
+                  >
+                    • {{ insight }}
+                  </p>
+                </div>
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">💡 Rekomendacje poprawy</h4>
+                  <p v-for="rec in aiAnalysis.sales_recommendations" :key="rec">
+                    • {{ rec }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent Ekonomiczny -->
+            <div class="ai-section">
+              <h3 @click="toggleSection('economic')" class="toggle-section">
+                💰 Agent Ekonomiczny - Analiza Finansowa
+                <span style="font-size: 0.8em"
+                  >{{ expandedSections.economic ? '▼' : '▶' }}</span
+                >
+              </h3>
+              <div
+                class="collapse-content"
+                :class="{ expanded: expandedSections.economic }"
+              >
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">📊 Analiza finansowa</h4>
+                  <p
+                    v-for="insight in aiAnalysis.financial_analysis"
+                    :key="insight"
+                  >
+                    • {{ insight }}
+                  </p>
+                </div>
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">🔮 Prognozy i trendy</h4>
+                  <p
+                    v-for="forecast in aiAnalysis.economic_forecast"
+                    :key="forecast"
+                  >
+                    • {{ forecast }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent Tras -->
+            <div class="ai-section">
+              <h3 @click="toggleSection('routes')" class="toggle-section">
+                🗺️ Agent Tras - Optymalizacja Wizyt
+                <span style="font-size: 0.8em"
+                  >{{ expandedSections.routes ? '▼' : '▶' }}</span
+                >
+              </h3>
+              <div
+                class="collapse-content"
+                :class="{ expanded: expandedSections.routes }"
+              >
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">🏆 Priorytet klientów</h4>
+                  <p
+                    v-for="priority in aiAnalysis.customer_priorities"
+                    :key="priority"
+                  >
+                    {{ priority }}
+                  </p>
+                </div>
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">🚗 Optymalizacja tras</h4>
+                  <p
+                    v-for="route in aiAnalysis.route_optimization"
+                    :key="route"
+                  >
+                    {{ route }}
+                  </p>
+                </div>
+                <div class="ai-insight">
+                  <h4 style="color: #ffd700">📅 Harmonogram wizyt</h4>
+                  <p
+                    v-for="schedule in aiAnalysis.visit_schedule"
+                    :key="schedule"
+                  >
+                    {{ schedule }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="loading" class="loading">⏳ Ładowanie danych...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        data() {
+          return {
+            selectedFile: null,
+            uploading: false,
+            loading: false,
+            message: "",
+            messageType: "",
+            analytics: {},
+            chartData: {},
+            chartsLoaded: false,
+            aiAnalysis: {},
+            expandedSections: {
+              sales: true,
+              economic: false,
+              routes: false,
+            },
+            baseURL: "http://localhost:5000",
+          };
+        },
+        methods: {
+          handleFileSelect(event) {
+            this.selectedFile = event.target.files[0];
+          },
+
+          async uploadFile() {
+            if (!this.selectedFile) return;
+
+            this.uploading = true;
+            this.message = "";
+
+            const formData = new FormData();
+            formData.append("file", this.selectedFile);
+
+            try {
+              const response = await axios.post(
+                `${this.baseURL}/api/upload`,
+                formData,
+                {
+                  headers: { "Content-Type": "multipart/form-data" },
+                }
+              );
+
+              this.message = response.data.message;
+              this.messageType = "success";
+
+              // Załaduj analizy
+              await this.loadAnalytics();
+              await this.loadChartData();
+              await this.loadAIAnalysis();
+            } catch (error) {
+              this.message =
+                "Błąd podczas przesyłania: " +
+                (error.response?.data?.error || error.message);
+              this.messageType = "error";
+            } finally {
+              this.uploading = false;
+            }
+          },
+
+          async loadAnalytics() {
+            this.loading = true;
+            try {
+              const response = await axios.get(`${this.baseURL}/api/analytics`);
+              this.analytics = response.data;
+            } catch (error) {
+              console.error("Błąd ładowania analiz:", error);
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          async loadChartData() {
+            try {
+              const response = await axios.get(
+                `${this.baseURL}/api/chart-data`
+              );
+              this.chartData = response.data;
+              this.$nextTick(() => {
+                this.createCharts();
+              });
+            } catch (error) {
+              console.error("Błąd ładowania danych wykresów:", error);
+            }
+          },
+
+          createCharts() {
+            // Wykres liniowy
+            if (
+              this.chartData.line_chart &&
+              this.chartData.line_chart.length > 0
+            ) {
+              new Chart(this.$refs.lineChart, {
+                type: "line",
+                data: {
+                  labels: this.chartData.line_chart.map(
+                    (_, i) => `Punkt ${i + 1}`
+                  ),
+                  datasets: [
+                    {
+                      label: "Wartości",
+                      data: this.chartData.line_chart.map((item) => item.y),
+                      borderColor: "#667eea",
+                      backgroundColor: "rgba(102, 126, 234, 0.1)",
+                      tension: 0.4,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                },
+              });
+            }
+
+            // Wykres słupkowy
+            if (
+              this.chartData.bar_chart &&
+              this.chartData.bar_chart.length > 0
+            ) {
+              new Chart(this.$refs.barChart, {
+                type: "bar",
+                data: {
+                  labels: this.chartData.bar_chart.map((item) => item.label),
+                  datasets: [
+                    {
+                      label: "Wartości",
+                      data: this.chartData.bar_chart.map((item) => item.value),
+                      backgroundColor: [
+                        "#667eea",
+                        "#764ba2",
+                        "#f093fb",
+                        "#f5576c",
+                        "#4facfe",
+                      ],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                },
+              });
+            }
+
+            // Wykres kołowy
+            if (
+              this.chartData.pie_chart &&
+              this.chartData.pie_chart.length > 0
+            ) {
+              new Chart(this.$refs.pieChart, {
+                type: "pie",
+                data: {
+                  labels: this.chartData.pie_chart.map((item) => item.label),
+                  datasets: [
+                    {
+                      data: this.chartData.pie_chart.map((item) => item.value),
+                      backgroundColor: [
+                        "#667eea",
+                        "#764ba2",
+                        "#f093fb",
+                        "#f5576c",
+                        "#4facfe",
+                      ],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                },
+              });
+            }
+
+            this.chartsLoaded = true;
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
